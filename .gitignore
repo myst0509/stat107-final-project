@@ -1,0 +1,17 @@
+# R
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# Quarto
+/.quarto/
+*_files/
+*.knit.md
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Rendered output is committed on purpose; uncomment to exclude it.
+# Analysis.html
