@@ -64,13 +64,7 @@ day_effects <- summarize_weekly_effects(day_models, "day_of_week")
 
 ## The data
 
-This report uses the US Air Quality Metrics dataset, which compiles daily
-readings from Environmental Protection Agency monitoring stations between
-January 2000 and September 2023. The raw file contains 665,414 monitor-days
-across 21 measured columns, covering 48 states and 150 cities. For each
-monitor-day it records the daily mean, the daily maximum, the hour of that
-maximum, and the Air Quality Index for four pollutants: nitrogen dioxide
-(NO~2~), ozone (O~3~), carbon monoxide (CO), and sulphur dioxide (SO~2~).
+This report uses the US Air Quality Metrics dataset, which compiles daily readings from Environmental Protection Agency monitoring stations between January 2000 and September 2023. The raw file contains 665,414 monitor-days across 21 measured columns, covering 48 states and 150 cities. For each monitor-day it records the daily mean, the daily maximum, the hour of that maximum, and the Air Quality Index for four pollutants: nitrogen dioxide (NO~2~), ozone (O~3~), carbon monoxide (CO), and sulphur dioxide (SO~2~).
 
 ```{r}
 #| label: tbl-summary
@@ -82,18 +76,11 @@ analysis_data |>
   kable(digits = c(0, 0, 3, 3, 3, 3), format.args = list(big.mark = ","))
 ```
 
-After cleaning and restricting to the `r n_locations` best-covered
-monitoring locations, the analysis sample contains
-`r format(nrow(analysis_data), big.mark = ",")` monitor-days spanning
-`r min(year(analysis_data$date))` to `r max(year(analysis_data$date))`.
-Nitrogen dioxide, the primary outcome, averages
-`r round(mean(analysis_data$no2_mean), 1)` ppb with a standard deviation of
-`r round(sd(analysis_data$no2_mean), 1)` ppb.
+After cleaning and restricting to the `r n_locations` best-covered monitoring locations, the analysis sample contains `r format(nrow(analysis_data), big.mark = ",")` monitor-days spanning `r min(year(analysis_data$date))` to `r max(year(analysis_data$date))`. Nitrogen dioxide, the primary outcome, averages `r round(mean(analysis_data$no2_mean), 1)` ppb with a standard deviation of `r round(sd(analysis_data$no2_mean), 1)` ppb.
 
 ## Code book
 
-@tbl-codebook defines every variable used in the analysis, including the
-derived calendar variables.
+@tbl-codebook defines every variable used in the analysis, including the derived calendar variables.
 
 ```{r}
 #| label: tbl-codebook
@@ -104,8 +91,7 @@ build_code_book() |>
 
 ## Variables omitted, and observations dropped
 
-The raw file carries several columns that this analysis does not use.
-@tbl-omitted records each omission and the reason for it.
+The raw file carries several columns that this analysis does not use. @tbl-omitted records each omission and the reason for it.
 
 ```{r}
 #| label: tbl-omitted
@@ -114,15 +100,7 @@ build_omitted_variables() |>
   kable()
 ```
 
-Two cleaning rules remove observations, and @tbl-audit reports the cost of
-each. First, monitors occasionally report zero or slightly negative
-concentrations when true levels sit near the instrument detection limit.
-These readings are physically impossible and undefined under the log
-transformation used below, so they are dropped. Second, a small number of
-monitors carry the placeholder city label "Not in a city" and cannot be tied
-to an urban area, so they are dropped as well. Together these rules remove
-roughly 9% of the raw file, and neither rule depends on the day of the week,
-so neither should bias a weekday-versus-weekend comparison.
+Two cleaning rules remove observations, and @tbl-audit reports the cost of each. First, monitors occasionally report zero or slightly negative concentrations when true levels sit near the instrument detection limit. These readings are physically impossible and undefined under the log transformation used below, so they are dropped. Second, a small number of monitors carry the placeholder city label "Not in a city" and cannot be tied to an urban area, so they are dropped as well. Together these rules remove roughly 9% of the raw file, and neither rule depends on the day of the week, so neither should bias a weekday-versus-weekend comparison.
 
 ```{r}
 #| label: tbl-audit
@@ -134,111 +112,56 @@ analysis_bundle$audit |>
   )
 ```
 
-The analysis then restricts attention to the `r n_locations` locations with
-the most complete records. This keeps the panel balanced across the full
-24-year window and concentrates on dense urban monitors, where any traffic
-signal should be strongest. The cost of this choice is discussed in the
-critique.
+The analysis then restricts attention to the `r n_locations` locations with the most complete records. This keeps the panel balanced across the full 24-year window and concentrates on dense urban monitors, where any traffic signal should be strongest. The cost of this choice is discussed in the critique.
 
 ## Motivation
 
-Nitrogen dioxide in cities comes overwhelmingly from combustion, and in
-particular from motor vehicle exhaust. Commuting traffic follows a sharp
-weekly rhythm, so if vehicle emissions drive urban NO~2~, concentrations
-should fall on Saturdays and Sundays. This "weekend effect" is a natural
-experiment that repeats every seven days for 24 years, which makes it an
-unusually clean way to look for a human fingerprint in environmental data.
+Nitrogen dioxide in cities comes overwhelmingly from combustion, and in particular from motor vehicle exhaust. Commuting traffic follows a sharp weekly rhythm, so if vehicle emissions drive urban NO~2~, concentrations should fall on Saturdays and Sundays. This "weekend effect" is a natural experiment that repeats every seven days for 24 years, which makes it an unusually clean way to look for a human fingerprint in environmental data.
 
-Ozone is the interesting complication. Ground-level ozone is not emitted by
-cars at all; it forms in the atmosphere through sunlight-driven reactions
-involving nitrogen oxides and volatile organic compounds. Atmospheric
-chemistry offers a specific reason to expect ozone to behave differently:
-freshly emitted nitric oxide destroys ozone directly in a reaction known as
-titration. Where that scavenging effect dominates, cutting traffic emissions
-should *raise* ozone rather than lower it. If both patterns appear in the
-same data, the weekly cycle becomes a way to see two different chemical
-regimes at once.
+Ozone is the interesting complication. Ground-level ozone is not emitted by cars at all; it forms in the atmosphere through sunlight-driven reactions involving nitrogen oxides and volatile organic compounds. Atmospheric chemistry offers a specific reason to expect ozone to behave differently: freshly emitted nitric oxide destroys ozone directly in a reaction known as titration. Where that scavenging effect dominates, cutting traffic emissions should *raise* ozone rather than lower it. If both patterns appear in the same data, the weekly cycle becomes a way to see two different chemical regimes at once.
 
 ## Research question and hypotheses
 
-> **Question.** Do weekly cycles in human activity leave a measurable
-> fingerprint on urban air quality, and do nitrogen dioxide and ozone
-> respond in the same direction?
+> **Question.** Do weekly cycles in human activity leave a measurable fingerprint on urban air quality, and do nitrogen dioxide and ozone respond in the same direction?
 
-Writing $\beta$ for the coefficient on a weekend indicator in a model of log
-concentration, the analysis tests two directional hypotheses.
+Writing $\beta$ for the coefficient on a weekend indicator in a model of log concentration, the analysis tests two directional hypotheses.
 
 For nitrogen dioxide, the traffic-marker hypothesis:
 
-$$
-H_0: \beta_{\text{NO}_2} = 0 \qquad
+$$H_0: \beta_{\text{NO}_2} = 0 \qquad
 \text{versus} \qquad
-H_A: \beta_{\text{NO}_2} < 0
-$$
+H_A: \beta_{\text{NO}_2} < 0$$
 
 For ozone, the titration hypothesis:
 
-$$
-H_0: \beta_{\text{O}_3} = 0 \qquad
+$$H_0: \beta_{\text{O}_3} = 0 \qquad
 \text{versus} \qquad
-H_A: \beta_{\text{O}_3} > 0
-$$
+H_A: \beta_{\text{O}_3} > 0$$
 
-We expect to reject both null hypotheses, and specifically we expect the two
-pollutants to move in opposite directions: lower NO~2~ on weekends, higher
-O~3~ on weekends.
+We expect to reject both null hypotheses, and specifically we expect the two pollutants to move in opposite directions: lower NO~2~ on weekends, higher O~3~ on weekends.
 
 # Methods
 
 ## Model
 
-Both outcomes are modelled with ordinary least squares on the natural log
-scale:
+Both outcomes are modelled with ordinary least squares on the natural log scale:
 
-$$
-\log(y_{it}) = \beta \cdot \text{weekend}_t + \gamma_{m(t)} +
-\delta_{y(t)} + \alpha_i + \varepsilon_{it}
-$$
+$$\log(y_{it}) = \beta \cdot \text{weekend}_t + \gamma_{m(t)} +
+\delta_{y(t)} + \alpha_i + \varepsilon_{it}$$
 
-for monitor location $i$ on date $t$. The log transformation serves two
-purposes. Concentrations are strictly positive and strongly right-skewed, as
-@fig-logscale shows, and logging both stabilises the spread and makes the
-coefficient directly interpretable: $100 \times (e^{\beta} - 1)$ is the
-approximate percentage difference between weekends and weekdays.
+for monitor location $i$ on date $t$. The log transformation serves two purposes. Concentrations are strictly positive and strongly right-skewed, as @fig-logscale shows, and logging both stabilises the spread and makes the coefficient directly interpretable: $100 \times (e^{\beta} - 1)$ is the approximate percentage difference between weekends and weekdays.
 
-The three control terms absorb the largest competing sources of variation.
-Month fixed effects ($\gamma$) absorb the strong seasonal cycles visible in
-both pollutants; ozone in particular peaks in summer because its formation
-is sunlight-driven. Year fixed effects ($\delta$) absorb the long-run
-downward trend in emissions shown in @fig-trend. Location fixed effects
-($\alpha$) absorb persistent differences between cities, so the weekend
-coefficient is identified from variation *within* a monitoring site rather
-than by comparing clean cities to dirty ones.
+The three control terms absorb the largest competing sources of variation. Month fixed effects ($\gamma$) absorb the strong seasonal cycles visible in both pollutants; ozone in particular peaks in summer because its formation is sunlight-driven. Year fixed effects ($\delta$) absorb the long-run downward trend in emissions shown in @fig-trend. Location fixed effects ($\alpha$) absorb persistent differences between cities, so the weekend coefficient is identified from variation *within* a monitoring site rather than by comparing clean cities to dirty ones.
 
-A second specification replaces the binary weekend indicator with a
-seven-level day-of-week factor, using Wednesday as the reference. This
-produces the main figure and shows whether the effect is a genuine weekend
-pattern or an artefact of one unusual day.
+A second specification replaces the binary weekend indicator with a seven-level day-of-week factor, using Wednesday as the reference. This produces the main figure and shows whether the effect is a genuine weekend pattern or an artefact of one unusual day.
 
 ## Assumptions
 
-Ordinary least squares requires linearity in the parameters, independent
-errors, constant error variance, and, for exact small-sample inference,
-normally distributed errors. Linearity is imposed on the log scale, and the
-fixed-effect structure means every predictor is categorical, so no
-functional form is assumed for the controls. The remaining three assumptions
-are checked in @sec-validity, where two of them turn out to be imperfect.
+Ordinary least squares requires linearity in the parameters, independent errors, constant error variance, and, for exact small-sample inference, normally distributed errors. Linearity is imposed on the log scale, and the fixed-effect structure means every predictor is categorical, so no functional form is assumed for the controls. The remaining three assumptions are checked in @sec-validity, where two of them turn out to be imperfect.
 
 ## Software
 
-The analysis uses R with the `tidyverse` collection: `readr` for input,
-`dplyr` and `tidyr` for manipulation, `lubridate` for calendar variables,
-`purrr` to fit and summarise both models without repeating code, and
-`ggplot2` for figures. Models are fitted with base R's `lm()`, and estimates
-are extracted with `summary()` and `confint()`. Tables are rendered with
-`knitr::kable()`. All data preparation, model fitting, and figure
-construction live in the scripts under `R/` and are called from this
-document via `source()`.
+The analysis uses R with the `tidyverse` collection: `readr` for input, `dplyr` and `tidyr` for manipulation, `lubridate` for calendar variables, `purrr` to fit and summarise both models without repeating code, and `ggplot2` for figures. Models are fitted with base R's `lm()`, and estimates are extracted with `summary()` and `confint()`. Tables are rendered with `knitr::kable()`. All data preparation, model fitting, and figure construction live in the scripts under `R/` and are called from this document via `source()`.
 
 ## Preliminary graphics
 
@@ -267,10 +190,7 @@ analysis_data |>
   plot_annual_trend()
 ```
 
-Nitrogen dioxide falls by roughly half across the study period, consistent
-with tightening vehicle emissions standards, while ozone is close to flat.
-Because these long-run movements are large relative to any weekly effect,
-the year term is essential.
+Nitrogen dioxide falls by roughly half across the study period, consistent with tightening vehicle emissions standards, while ozone is close to flat. Because these long-run movements are large relative to any weekly effect, the year term is essential.
 
 # Results
 
@@ -287,13 +207,7 @@ the year term is essential.
 plot_weekly_profile(day_effects)
 ```
 
-@fig-main is the central result. Nitrogen dioxide is flat from Tuesday
-through Friday, dips slightly on Monday, and then falls steeply: about 17%
-below Wednesday on Saturday and about 29% below on Sunday. Ozone traces the
-mirror image. It is flat midweek and then rises, reaching about 9% above
-Wednesday on Saturday and 13% above on Sunday. The confidence intervals are
-narrow enough that the weekday and weekend estimates do not overlap for
-either pollutant.
+@fig-main is the central result. Nitrogen dioxide is flat from Tuesday through Friday, dips slightly on Monday, and then falls steeply: about 17% below Wednesday on Saturday and about 29% below on Sunday. Ozone traces the mirror image. It is flat midweek and then rises, reaching about 9% above Wednesday on Saturday and 13% above on Sunday. The confidence intervals are narrow enough that the weekday and weekend estimates do not overlap for either pollutant.
 
 ## Estimated weekend effect
 
@@ -308,16 +222,7 @@ weekend_effects |>
   kable(align = "lrrrrrr")
 ```
 
-@tbl-effects reports the binary specification. Weekend nitrogen dioxide is
-`r round(abs(weekend_effects$pct_change[1]), 1)`% lower than weekday
-nitrogen dioxide, with a 95% confidence interval running from
-`r round(abs(weekend_effects$pct_high[1]), 1)`% to
-`r round(abs(weekend_effects$pct_low[1]), 1)`% lower. Weekend ozone is
-`r round(weekend_effects$pct_change[2], 1)`% higher, with an interval
-running from `r round(weekend_effects$pct_low[2], 1)`% to
-`r round(weekend_effects$pct_high[2], 1)`% higher. Both p-values fall below
-any conventional threshold, so we reject both null hypotheses in favour of
-the directional alternatives stated in the introduction.
+@tbl-effects reports the binary specification. Weekend nitrogen dioxide is `r round(abs(weekend_effects$pct_change[1]), 1)`% lower than weekday nitrogen dioxide, with a 95% confidence interval running from `r round(abs(weekend_effects$pct_high[1]), 1)`% to `r round(abs(weekend_effects$pct_low[1]), 1)`% lower. Weekend ozone is `r round(weekend_effects$pct_change[2], 1)`% higher, with an interval running from `r round(weekend_effects$pct_low[2], 1)`% to `r round(weekend_effects$pct_high[2], 1)`% higher. Both p-values fall below any conventional threshold, so we reject both null hypotheses in favour of the directional alternatives stated in the introduction.
 
 ```{r}
 #| label: tbl-fit
@@ -334,11 +239,7 @@ weekend_models |>
   )
 ```
 
-The models explain a little over half the variation in log NO~2~ and about
-42% of the variation in log O~3~. Most of that explanatory power comes from
-the location and month terms rather than the weekend indicator, which is
-expected: the weekly cycle is a real but modest component of day-to-day
-variation, most of which is driven by weather and geography.
+The models explain a little over half the variation in log NO~2~ and about 42% of the variation in log O~3~. Most of that explanatory power comes from the location and month terms rather than the weekend indicator, which is expected: the weekly cycle is a real but modest component of day-to-day variation, most of which is driven by weather and geography.
 
 ## Validity checks {#sec-validity}
 
@@ -368,84 +269,29 @@ weekend_models[["Nitrogen dioxide (NO2)"]] |>
   plot_residual_qq(label = "nitrogen dioxide")
 ```
 
-The residual plot in @fig-resid shows no funnel shape and no systematic
-curvature, so linearity on the log scale and constant variance are both
-reasonable. The quantile-quantile plot in @fig-qq is less flattering: the
-residuals are left-skewed and heavy-tailed, so the normality assumption
-fails. This matters less than it might appear. With more than 200,000
-observations, the sampling distribution of the coefficients is governed by
-the central limit theorem rather than by the shape of individual residuals,
-so the standard errors and confidence intervals remain approximately valid.
-The p-values should nonetheless be read as approximate rather than exact.
+The residual plot in @fig-resid shows no funnel shape and no systematic curvature, so linearity on the log scale and constant variance are both reasonable. The quantile-quantile plot in @fig-qq is less flattering: the residuals are left-skewed and heavy-tailed, so the normality assumption fails. This matters less than it might appear. With more than 200,000 observations, the sampling distribution of the coefficients is governed by the central limit theorem rather than by the shape of individual residuals, so the standard errors and confidence intervals remain approximately valid. The p-values should nonetheless be read as approximate rather than exact.
 
-A more serious issue is independence, which the design clearly violates:
-consecutive days at the same monitor are correlated, because weather
-persists. Positive serial correlation of this kind leaves the coefficients
-unbiased but makes the reported standard errors too small. The estimated
-effects are large enough that this is unlikely to overturn the conclusions,
-but the intervals in @tbl-effects should be treated as a lower bound on the
-true uncertainty.
+A more serious issue is independence, which the design clearly violates: consecutive days at the same monitor are correlated, because weather persists. Positive serial correlation of this kind leaves the coefficients unbiased but makes the reported standard errors too small. The estimated effects are large enough that this is unlikely to overturn the conclusions, but the intervals in @tbl-effects should be treated as a lower bound on the true uncertainty.
 
 # Discussion
 
 ## Main findings
 
-Across 24 years and `r n_locations` urban monitoring locations, the weekly
-rhythm of human activity is clearly visible in the air. Nitrogen dioxide
-falls about 22% on weekends, and the day-by-day profile in @fig-main shows
-that the decline tracks the working week almost exactly: flat from Tuesday
-to Friday, lower on Saturday, and lowest on Sunday. This is what a
-traffic-driven pollutant should look like, and it supports the
-traffic-marker hypothesis.
+Across 24 years and `r n_locations` urban monitoring locations, the weekly rhythm of human activity is clearly visible in the air. Nitrogen dioxide falls about 22% on weekends, and the day-by-day profile in @fig-main shows that the decline tracks the working week almost exactly: flat from Tuesday to Friday, lower on Saturday, and lowest on Sunday. This is what a traffic-driven pollutant should look like, and it supports the traffic-marker hypothesis.
 
-Ozone moves the other way, rising about 10% on weekends. The data therefore
-support the titration hypothesis as well. Both null hypotheses are rejected,
-and the opposite signs are the substantive finding: cutting emissions does
-not lower every pollutant, because the pollutant that harms people at ground
-level is partly destroyed by the very emissions that cause the rest of the
-problem.
+Ozone moves the other way, rising about 10% on weekends. The data therefore support the titration hypothesis as well. Both null hypotheses are rejected, and the opposite signs are the substantive finding: cutting emissions does not lower every pollutant, because the pollutant that harms people at ground level is partly destroyed by the very emissions that cause the rest of the problem.
 
 ## Why this may or may not be meaningful
 
-The result is meaningful mainly because it is a caution against a natural
-intuition. If a city reduced weekday traffic to weekend levels, these
-estimates suggest it would enjoy substantially cleaner air in terms of
-nitrogen dioxide but might see ozone rise, at least in the urban core where
-NO~x~ scavenging dominates. That trade-off is well established in
-atmospheric chemistry, and recovering it from a simple regression on public
-monitoring data is a reassuring sign that the estimates are picking up real
-chemistry rather than noise.
+The result is meaningful mainly because it is a caution against a natural intuition. If a city reduced weekday traffic to weekend levels, these estimates suggest it would enjoy substantially cleaner air in terms of nitrogen dioxide but might see ozone rise, at least in the urban core where NO~x~ scavenging dominates. That trade-off is well established in atmospheric chemistry, and recovering it from a simple regression on public monitoring data is a reassuring sign that the estimates are picking up real chemistry rather than noise.
 
-There are reasons for caution. The comparison is observational, not
-experimental. "Weekend" is a proxy for reduced commuting traffic, but
-weekends differ from weekdays in other ways too, including industrial
-activity, heavy goods traffic, and recreational travel, so the coefficient
-captures the whole bundle rather than traffic alone. The analysis also says
-nothing about *where* the ozone increase matters most; the titration effect
-is strongest in dense urban centres and can reverse downwind.
+There are reasons for caution. The comparison is observational, not experimental. "Weekend" is a proxy for reduced commuting traffic, but weekends differ from weekdays in other ways too, including industrial activity, heavy goods traffic, and recreational travel, so the coefficient captures the whole bundle rather than traffic alone. The analysis also says nothing about *where* the ozone increase matters most; the titration effect is strongest in dense urban centres and can reverse downwind.
 
 ## Critique and possible extensions
 
-Three limitations stand out. First, as noted in @sec-validity, the standard
-errors ignore serial correlation within monitoring sites and are therefore
-too small; clustering the standard errors by location, or aggregating to
-weekly averages, would give more honest intervals. Second, the analysis
-controls for season and year with fixed effects but includes no direct
-meteorological variables. Temperature, sunlight, and wind speed are the main
-drivers of ozone formation, and while there is no reason for weather to
-differ systematically between weekdays and weekends, adding weather data
-would tighten the model considerably. Third, restricting to the
-`r n_locations` best-covered locations buys a balanced panel at the cost of
-national representativeness; these are dense urban monitors, exactly the
-places where NO~x~ titration is strongest, so the ozone result in particular
-should not be generalised to rural areas.
+Three limitations stand out. First, as noted in @sec-validity, the standard errors ignore serial correlation within monitoring sites and are therefore too small; clustering the standard errors by location, or aggregating to weekly averages, would give more honest intervals. Second, the analysis controls for season and year with fixed effects but includes no direct meteorological variables. Temperature, sunlight, and wind speed are the main drivers of ozone formation, and while there is no reason for weather to differ systematically between weekdays and weekends, adding weather data would tighten the model considerably. Third, restricting to the `r n_locations` best-covered locations buys a balanced panel at the cost of national representativeness; these are dense urban monitors, exactly the places where NO~x~ titration is strongest, so the ozone result in particular should not be generalised to rural areas.
 
-An incidental finding is worth recording. The long-run trend in @fig-trend
-shows nitrogen dioxide falling by roughly half between 2000 and 2023 while
-ozone stays flat or drifts slightly upward. That is the same trade-off as
-the weekly result, playing out across decades rather than days, and it would
-make a natural extension: testing whether the weekend ozone effect has grown
-or shrunk as background NO~x~ has declined.
+An incidental finding is worth recording. The long-run trend in @fig-trend shows nitrogen dioxide falling by roughly half between 2000 and 2023 while ozone stays flat or drifts slightly upward. That is the same trade-off as the weekly result, playing out across decades rather than days, and it would make a natural extension: testing whether the weekend ozone effect has grown or shrunk as background NO~x~ has declined.
 
 # Appendix
 
